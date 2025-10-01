@@ -31,8 +31,8 @@ const DB_THROTTLE_MS = 150; // 150ms throttle untuk stabilitas
 const client = createPublicClient({
   chain: {
     id: CHAIN_CONFIG.id,
-    name: "kaia",
-    nativeCurrency: { name: "KAIA", symbol: "KAIA", decimals: 18 },
+    name: "moonbeam",
+    nativeCurrency: { name: "MOONBEAM", symbol: "GLMR", decimals: 18 },
     rpcUrls: {
       default: { http: CHAIN_CONFIG.rpc },
       public: { http: CHAIN_CONFIG.rpc },

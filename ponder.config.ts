@@ -8,15 +8,15 @@ import { loadPositionAddressesFromChain } from "./src/helpers/positionAddressLoa
 
 // ========== EXPORTED CONSTANTS FOR REUSABILITY ==========
 export const HELPER_CONTRACT_ADDRESS = "0x03e7669B2e85CB7C61Af39307D79390B79c3aB7B";
-export const FACTORY_ADDRESS = "0xa971CD2714fbCc9A942b09BC391a724Df9338206";
-export const START_BLOCK = 196049435;
+export const FACTORY_ADDRESS = "0x3870bFD5820994a560E3F1D9c98c7740D9E007B8";
+export const START_BLOCK = 12805801;
 
 // Chain configuration
 export const CHAIN_CONFIG = {
-  id: 8453,
+  id: 1284,
   rpc: [
-    "https://rpc.ankr.com/kaia",
-    "https://1rpc.io/klay",
+    "https://moonbeam-mainnet.g.alchemy.com/v2/_wCzLF-DIaJBtb1jRS1FD6U0cE7OA5XP",
+    "https://moonbeam.unitedbloc.com",
   ],
   maxRequestsPerSecond: 10,
 };
@@ -56,12 +56,12 @@ const getDatabaseConfig = () => {
 export default createConfig({
   database: getDatabaseConfig(),
   chains: {
-    kaia: CHAIN_CONFIG,
+    moonbeam: CHAIN_CONFIG,
   },
   contracts: {
     // Factory contract untuk membuat pools secara dinamis
     LendingPoolFactory: {
-      chain: "kaia",
+      chain: "moonbeam",
       abi: LendingPoolFactoryAbi,
       address: FACTORY_ADDRESS,
       startBlock: START_BLOCK,
@@ -69,7 +69,7 @@ export default createConfig({
     },
     // Dynamic pool addresses menggunakan factory pattern - pools akan ditemukan otomatis
     LendingPool: {
-      chain: "kaia",
+      chain: "moonbeam",
       abi: LendingPoolAbi,
       address: factory({
         address: FACTORY_ADDRESS,
@@ -80,9 +80,8 @@ export default createConfig({
       includeTransactionReceipts: true,
     },
     // Position contracts - akan di-discover secara dinamis via CreatePosition event
-    // Note: Ponder tidak support nested factory, jadi Position akan di-track via helper
     Position: {
-      chain: "kaia", 
+      chain: "moonbeam", 
       abi: PositionAbi,
       address: [], // Akan di-populate oleh positionHelpers
       startBlock: START_BLOCK,

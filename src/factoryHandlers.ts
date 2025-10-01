@@ -74,7 +74,7 @@ ponder.on("LendingPoolFactory:LendingPoolCreated", async ({ event, context }) =>
     try {
       const contractContext = {
         client: client,
-        network: "kaia"
+        network: "moonbeam"
       };
       
       routerAddress = await getRouter(poolAddress, HELPER_CONTRACT_ADDRESS, contractContext);
