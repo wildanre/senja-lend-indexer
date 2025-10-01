@@ -3,7 +3,7 @@ import { LendingPoolAbi } from '../abis/LendingPoolAbi';
 
 // Setup client untuk Kaia
 const client = createPublicClient({
-  transport: http(')
+  transport: http('https://rpc.ankr.com/kaia')
 });
 
 // Pool addresses yang sudah terdeteksi

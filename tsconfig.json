@@ -22,5 +22,12 @@
     "skipLibCheck": true
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "src/routerHandlers.disabled.ts",
+    "src/routerHandlers.backup.ts", 
+    "src/dynamicPositionHandlers.disabled.ts",
+    "src/lendingPoolHandlers.backup.ts",
+    "src/nestedFactoryHandler.ts"
+  ]
 }

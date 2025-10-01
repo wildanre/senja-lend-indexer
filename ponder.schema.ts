@@ -17,11 +17,11 @@ export const LendingPool = onchainTable("LendingPool", (t) => ({
   totalLiquidity: t.bigint().notNull().default(0n), // Available liquidity (totalSupplyAssets - totalBorrowAssets)
   totalBorrowAssets: t.bigint().notNull().default(0n),
   totalBorrowShares: t.bigint().notNull().default(0n),
-  utilizationRate: t.integer().notNull().default(0), // in basis points (0-10000)
-  supplyAPY: t.integer().notNull().default(0), // in basis points (1% = 100)
-  borrowAPY: t.integer().notNull().default(0), // in basis points (1% = 100)
-  supplyRate: t.integer().notNull().default(0), // in basis points per year
-  borrowRate: t.integer().notNull().default(0), // in basis points per year
+  utilizationRate: t.bigint().notNull().default(0n), // in wei (18 decimals)
+  supplyAPY: t.bigint().notNull().default(0n), // in wei (18 decimals)
+  borrowAPY: t.bigint().notNull().default(0n), // in wei (18 decimals)
+  supplyRate: t.bigint().notNull().default(0n), // in wei (18 decimals)
+  borrowRate: t.bigint().notNull().default(0n), // in wei (18 decimals)
   lastAccrued: t.bigint().notNull().default(0n),
   created: t.bigint().notNull(),
 }));
@@ -208,9 +208,9 @@ export const PositionSwapTokenByPosition = onchainTable("PositionSwapTokenByPosi
 export const PoolAPYSnapshot = onchainTable("PoolAPYSnapshot", (t) => ({
   id: t.text().primaryKey(), // poolAddress-timestamp
   pool: t.text().notNull(),
-  supplyAPY: t.integer().notNull(), // in basis points (1% = 100)
-  borrowAPY: t.integer().notNull(), // in basis points (1% = 100)
-  utilizationRate: t.integer().notNull(), // in basis points (100% = 10000)
+  supplyAPY: t.bigint().notNull(), // in wei (18 decimals)
+  borrowAPY: t.bigint().notNull(), // in wei (18 decimals)
+  utilizationRate: t.bigint().notNull(), // in wei (18 decimals)
   totalSupplyAssets: t.bigint().notNull(),
   totalBorrowAssets: t.bigint().notNull(),
   timestamp: t.bigint().notNull(),
@@ -275,6 +275,33 @@ export const PoolRouter = onchainTable("PoolRouter", (t) => ({
   isActive: t.boolean().notNull().default(true),
   discoveredAt: t.bigint().notNull(),
   blockNumber: t.bigint().notNull(),
+}));
+
+// Dynamic Registry untuk melacak entities yang ditemukan secara otomatis
+export const DynamicRegistry = onchainTable("DynamicRegistry", (t) => ({
+  id: t.text().primaryKey(), // entityType-address
+  entityType: t.text().notNull(), // "pool", "router", "position"
+  address: t.text().notNull(),
+  relatedAddress: t.text(), // untuk mapping, misalnya pool -> router
+  metadata: t.text(), // JSON metadata tambahan
+  isActive: t.boolean().notNull().default(true),
+  discoveredAt: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  transactionHash: t.text().notNull(),
+}));
+
+// Position Registry untuk melacak semua position addresses yang discovered
+export const PositionRegistry = onchainTable("PositionRegistry", (t) => ({
+  id: t.text().primaryKey(), // positionAddress
+  positionAddress: t.text().notNull(),
+  user: t.text().notNull(),
+  pool: t.text().notNull(),
+  router: t.text(), // optional, router yang terkait dengan pool
+  isActive: t.boolean().notNull().default(true),
+  createdAt: t.bigint().notNull(),
+  lastActivity: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  transactionHash: t.text().notNull(),
 }));
 
 // Emergency Position Reset Event

@@ -2,15 +2,48 @@ import { ponder } from "ponder:registry";
 import * as schema from "../ponder.schema";
 import { createPublicClient, http } from 'viem';
 import { LendingPoolAbi } from '../abis/LendingPoolAbi';
+import { HELPER_CONTRACT_ADDRESS } from '../ponder.config';
+import { getRouter } from './helpers/contractHelpers';
+import { discoverRouterForPool } from './helpers/routerDiscovery';
+import { 
+  createEventID, 
+  getOrCreateFactory,
+  getOrCreatePool,
+  getOrCreatePoolRouter,
+  createCompositeID 
+} from './helpers/entityHelpers';
 
 // Setup client untuk query router address
 const client = createPublicClient({
-  transport: http(')
+  transport: http('https://base.lava.build')
 });
 
-// Helper function untuk membuat event ID
-function createEventID(blockNumber: bigint, logIndex: number): string {
-  return `${blockNumber.toString()}-${logIndex.toString()}`;
+// Helper function untuk mendaftarkan ke dynamic registry
+async function registerToDynamicRegistry(
+  context: any,
+  entityType: string,
+  address: string,
+  relatedAddress?: string,
+  metadata?: any,
+  timestamp?: bigint,
+  blockNumber?: bigint,
+  transactionHash?: string
+) {
+  const registryId = createCompositeID(entityType, address);
+  
+  await context.db.insert(schema.DynamicRegistry).values({
+    id: registryId,
+    entityType,
+    address,
+    relatedAddress: relatedAddress || null,
+    metadata: metadata ? JSON.stringify(metadata) : null,
+    isActive: true,
+    discoveredAt: timestamp || 0n,
+    blockNumber: blockNumber || 0n,
+    transactionHash: transactionHash || "",
+  });
+  
+  console.log(`📝 Registered ${entityType} ${address} to dynamic registry`);
 }
 
 // Handler untuk LendingPoolCreated event dari Factory
@@ -24,60 +57,98 @@ ponder.on("LendingPoolFactory:LendingPoolCreated", async ({ event, context }) =>
   const factoryAddress = event.log.address;
   const timestamp = BigInt(event.block.timestamp);
   const blockNumber = BigInt(event.block.number);
+  const transactionHash = event.transaction.hash;
   
-  // Query router address dari pool yang baru dibuat
+  // Query router address menggunakan dynamic discovery
   let routerAddress: string | null = null;
+  
+  // TEMP: Disable helper contract calls that may cause sync hanging
+  console.log(`🔄 Skipping router discovery for pool ${poolAddress} (helper contract disabled)`);
+  
+  /* COMMENTED OUT: Router discovery causing sync to hang
   try {
-    routerAddress = await client.readContract({
-      address: poolAddress as `0x${string}`,
-      abi: LendingPoolAbi,
-      functionName: 'router',
-    }) as string;
-    
+    // Gunakan dynamic discovery yang lebih robust
+    routerAddress = await discoverRouterForPool(poolAddress);
     console.log(`🤖 Router discovered for pool ${poolAddress}: ${routerAddress}`);
   } catch (error) {
-    console.error(`❌ Failed to get router for pool ${poolAddress}:`, error);
-  }
-
-  // Create atau update pool di database
-  await context.db.insert(schema.LendingPool).values({
-    id: poolAddress,
-    address: poolAddress,
-    factory: factoryAddress, // Factory address
-    token0: collateralToken,
-    token1: borrowToken,
-    totalDeposits: 0n,
-    totalWithdrawals: 0n,
-    totalBorrows: 0n,
-    totalRepays: 0n,
-    totalSwaps: 0n,
-    // APY tracking fields
-    totalSupplyAssets: 0n,
-    totalSupplyShares: 0n,
-    totalLiquidity: 0n,
-    totalBorrowAssets: 0n,
-    totalBorrowShares: 0n,
-    utilizationRate: 0,
-    supplyAPY: 0,
-    borrowAPY: 0,
-    supplyRate: 0,
-    borrowRate: 0,
-    lastAccrued: timestamp,
-    created: timestamp,
-  }).onConflictDoNothing(); // Jika sudah ada, jangan insert lagi
-
-  // Simpan mapping pool-to-router jika berhasil mendapatkan router
-  if (routerAddress) {
-    await context.db.insert(schema.PoolRouter).values({
-      id: poolAddress,
-      poolAddress: poolAddress,
-      routerAddress: routerAddress,
-      isActive: true,
-      discoveredAt: timestamp,
-      blockNumber: blockNumber,
-    }).onConflictDoNothing(); // Jika sudah ada, jangan replace
+    console.error(`❌ Failed to discover router for pool ${poolAddress}:`, error);
     
-    console.log(`📝 Pool-Router mapping saved: ${poolAddress} -> ${routerAddress}`);
+    // Fallback ke helper contract approach
+    try {
+      const contractContext = {
+        client: client,
+        network: "kaia"
+      };
+      
+      routerAddress = await getRouter(poolAddress, HELPER_CONTRACT_ADDRESS, contractContext);
+      console.log(`🔄 Fallback helper contract discovery successful: ${routerAddress}`);
+    } catch (helperError) {
+      console.error(`❌ Helper contract fallback failed:`, helperError);
+      
+      // Final fallback ke direct contract call
+      try {
+        routerAddress = await client.readContract({
+          address: poolAddress as `0x${string}`,
+          abi: LendingPoolAbi,
+          functionName: 'router',
+        }) as string;
+        console.log(`🔄 Direct contract fallback successful: ${routerAddress}`);
+      } catch (directError) {
+        console.error(`❌ All router discovery methods failed for pool ${poolAddress}:`, directError);
+      }
+    }
+  }
+  */
+
+  // Create atau update pool menggunakan helper function
+  const pool = await getOrCreatePool(context, poolAddress, factoryAddress, collateralToken, borrowToken);
+  
+  // Update pool data dengan timestamp dari event (penting untuk menghindari timestamp conflict)
+  await context.db.update(schema.LendingPool, { id: poolAddress }).set({
+    created: timestamp,
+    lastAccrued: timestamp, // Set lastAccrued to event timestamp to avoid negative time delta
+  });
+
+  // Register pool ke dynamic registry
+  await registerToDynamicRegistry(
+    context,
+    "pool",
+    poolAddress,
+    factoryAddress,
+    {
+      collateralToken,
+      borrowToken,
+      ltv: ltv.toString(),
+    },
+    timestamp,
+    blockNumber,
+    transactionHash
+  );
+
+  // Jika router berhasil ditemukan, create pool-router mapping dan register ke dynamic registry
+  if (routerAddress) {
+    await getOrCreatePoolRouter(
+      context,
+      poolAddress,
+      routerAddress,
+      timestamp,
+      blockNumber
+    );
+
+    // Register router ke dynamic registry
+    await registerToDynamicRegistry(
+      context,
+      "router",
+      routerAddress,
+      poolAddress,
+      {
+        poolAddress,
+        discoveredFrom: "pool_creation"
+      },
+      timestamp,
+      blockNumber,
+      transactionHash
+    );
   }
 
   // Catat event creation menggunakan schema yang ada
@@ -91,26 +162,21 @@ ponder.on("LendingPoolFactory:LendingPoolCreated", async ({ event, context }) =>
     ltv: ltv,
     timestamp: timestamp,
     blockNumber: blockNumber,
-    transactionHash: event.transaction.hash,
+    transactionHash: transactionHash,
   });
 
-  // Update atau create factory record
-  const factory = await context.db.find(schema.LendingPoolFactory, { id: factoryAddress });
+  // Update atau create factory record menggunakan helper
+  const factory = await getOrCreateFactory(context, factoryAddress);
   
-  if (!factory) {
-    await context.db.insert(schema.LendingPoolFactory).values({
-      id: factoryAddress,
-      address: factoryAddress,
-      totalPoolsCreated: 1n,
+  await context.db.update(schema.LendingPoolFactory, { id: factoryAddress })
+    .set({
+      totalPoolsCreated: factory.totalPoolsCreated + 1n,
       created: timestamp,
     });
-  } else {
-    await context.db.update(schema.LendingPoolFactory, { id: factoryAddress })
-      .set({
-        totalPoolsCreated: factory.totalPoolsCreated + 1n,
-      });
-  }
 
   console.log(`✅ Pool ${poolAddress} telah dicatat dengan tokens: ${collateralToken}/${borrowToken}`);
-  console.log(`📊 Factory ${factoryAddress} sekarang memiliki ${factory ? factory.totalPoolsCreated + 1n : 1n} pools`);
+  console.log(`📊 Factory ${factoryAddress} sekarang memiliki ${factory.totalPoolsCreated + 1n} pools`);
+  
+  // NOTE: Di Ponder tidak ada template creation seperti subgraph, 
+  // tapi pool sudah otomatis di-track melalui factory pattern di config
 });
