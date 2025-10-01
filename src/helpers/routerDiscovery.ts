@@ -1,37 +1,54 @@
 import { createPublicClient, http } from "viem";
 import { helperAbi } from "../../abis/helperAbi";
 import { LendingPoolFactoryAbi } from "../../abis/LendingPoolFactoryAbi";
+import { 
+  HELPER_CONTRACT_ADDRESS, 
+  FACTORY_ADDRESS, 
+  START_BLOCK,
+  CHAIN_CONFIG,
+  LENDING_POOL_CREATED_EVENT
+} from "../../ponder.config";
 
-const client = createPublicClient({
-  transport: http('https://1rpc.io/base')
-});
+// Export untuk reuse di file lain
+export { CHAIN_CONFIG };
 
-const HELPER_CONTRACT_ADDRESS = "0xad15249b77d9Bf9a02401b8122FC763fD7391329";
-const FACTORY_ADDRESS = "0x5a28316959551dA618F84070FfF70B390270185C";
-const START_BLOCK = 35950604n;
+/**
+ * Create configured client using settings from ponder config
+ */
+export function createConfiguredClient() {
+  return createPublicClient({
+    transport: http(CHAIN_CONFIG.rpc[1]) 
+  });
+}
+
+// Default client instance
+const client = createConfiguredClient();
 
 /**
  * Discovers all router addresses dynamically using helper contract
- * Mirip dengan logic di frontend hooks tapi untuk indexer
+ * Menggunakan konfigurasi dari ponder.config.ts untuk consistency
+ * 
+ * @param customClient - Optional custom viem client, defaults to configured client
+ * @param fromBlock - Optional custom start block, defaults to START_BLOCK from config
  */
-export async function discoverAllRouterAddresses(): Promise<string[]> {
+export async function discoverAllRouterAddresses(
+  customClient?: ReturnType<typeof createConfiguredClient>,
+  fromBlock?: bigint
+): Promise<string[]> {
+  const activeClient = customClient || client;
+  const startBlock = fromBlock || BigInt(START_BLOCK);
+  
   try {
     console.log("🔍 Starting dynamic router discovery...");
+    console.log(`📍 Using factory: ${FACTORY_ADDRESS}`);
+    console.log(`📍 Using helper: ${HELPER_CONTRACT_ADDRESS}`);
+    console.log(`📍 Starting from block: ${startBlock}`);
     
     // 1. Get all LendingPoolCreated events from factory
-    const poolEvents = await client.getLogs({
+    const poolEvents = await activeClient.getLogs({
       address: FACTORY_ADDRESS as `0x${string}`,
-      event: {
-        type: 'event',
-        name: 'LendingPoolCreated',
-        inputs: [
-          { name: 'collateralToken', type: 'address', indexed: true },
-          { name: 'borrowToken', type: 'address', indexed: true },
-          { name: 'lendingPool', type: 'address', indexed: true },
-          { name: 'ltv', type: 'uint256', indexed: false },
-        ],
-      },
-      fromBlock: START_BLOCK,
+      event: LENDING_POOL_CREATED_EVENT,
+      fromBlock: startBlock,
       toBlock: 'latest',
     });
 
@@ -44,7 +61,7 @@ export async function discoverAllRouterAddresses(): Promise<string[]> {
     for (const event of poolEvents) {
       if (event.args?.lendingPool) {
         try {
-          const routerAddress = await client.readContract({
+          const routerAddress = await activeClient.readContract({
             address: HELPER_CONTRACT_ADDRESS as `0x${string}`,
             abi: helperAbi,
             functionName: 'getRouter',
@@ -75,11 +92,20 @@ export async function discoverAllRouterAddresses(): Promise<string[]> {
 }
 
 /**
- * Discovers router address for specific pool (mirip useReadRouterAddress hook)
+ * Discovers router address for specific pool
+ * Menggunakan HELPER_CONTRACT_ADDRESS dari ponder config
+ * 
+ * @param poolAddress - Address of the lending pool
+ * @param customClient - Optional custom viem client, defaults to configured client
  */
-export async function discoverRouterForPool(poolAddress: string): Promise<string | null> {
+export async function discoverRouterForPool(
+  poolAddress: string,
+  customClient?: ReturnType<typeof createConfiguredClient>
+): Promise<string | null> {
+  const activeClient = customClient || client;
+  
   try {
-    const routerAddress = await client.readContract({
+    const routerAddress = await activeClient.readContract({
       address: HELPER_CONTRACT_ADDRESS as `0x${string}`,
       abi: helperAbi,
       functionName: 'getRouter',

@@ -5,13 +5,27 @@ import { LendingPoolFactoryAbi } from "./abis/LendingPoolFactoryAbi";
 import { LendingPoolRouterAbi } from "./abis/LendingPoolRouterAbi";
 import { LendingPoolAbi as PositionAbi } from "./abis/PositionAbi";
 
-// Helper contract address - sesuaikan dengan deployment sebenarnya
-export const HELPER_CONTRACT_ADDRESS = process.env.HELPER_CONTRACT_ADDRESS || "0xad15249b77d9Bf9a02401b8122FC763fD7391329";
+// ========== EXPORTED CONSTANTS FOR REUSABILITY ==========
+export const HELPER_CONTRACT_ADDRESS = "0x03e7669B2e85CB7C61Af39307D79390B79c3aB7B";
+export const FACTORY_ADDRESS = "0xa971CD2714fbCc9A942b09BC391a724Df9338206";
+export const START_BLOCK = 196049435;
 
-// Import dynamic discovery (akan digunakan saat runtime)
-// Tidak bisa digunakan langsung di config karena async, tapi akan digunakan dalam handlers
+// Chain configuration
+export const CHAIN_CONFIG = {
+  id: 8453,
+  rpc: [
+    "https://rpc.ankr.com/kaia",
+    "https://1rpc.io/klay",
+  ],
+  maxRequestsPerSecond: 10,
+};
 
-// Konfigurasi database berdasarkan environment
+// Event signature untuk LendingPoolCreated
+export const LENDING_POOL_CREATED_EVENT = parseAbiItem("event LendingPoolCreated(address indexed collateralToken, address indexed borrowToken, address indexed lendingPool, uint256 ltv)");
+
+// Event signature untuk CreatePosition
+export const CREATE_POSITION_EVENT = parseAbiItem("event CreatePosition(address user, address positionAddress)");
+
 const getDatabaseConfig = () => {
   // Ambil connection string dari environment variable
   const connectionString = process.env.DATABASE_URL;
@@ -41,23 +55,15 @@ const getDatabaseConfig = () => {
 export default createConfig({
   database: getDatabaseConfig(),
   chains: {
-    kaia: {
-      id: 8453,
-      rpc: [
-        "https://base-mainnet.g.alchemy.com/v2/_wCzLF-DIaJBtb1jRS1FD6U0cE7OA5XP",
-        "https://base-mainnet.g.alchemy.com/v2/MyhHgv4SpAdOcDQzsGQTZ",
-      ],
-      maxRequestsPerSecond: 10,
-      pollingInterval: 5000, // 5 seconds instead of default 2 seconds
-    },
+    kaia: CHAIN_CONFIG,
   },
   contracts: {
     // Factory contract untuk membuat pools secara dinamis
     LendingPoolFactory: {
       chain: "kaia",
       abi: LendingPoolFactoryAbi,
-      address: "0x5a28316959551dA618F84070FfF70B390270185C",
-      startBlock: 35929846,
+      address: FACTORY_ADDRESS,
+      startBlock: START_BLOCK,
       includeTransactionReceipts: true,
     },
     // Dynamic pool addresses menggunakan factory pattern - pools akan ditemukan otomatis
@@ -65,11 +71,20 @@ export default createConfig({
       chain: "kaia",
       abi: LendingPoolAbi,
       address: factory({
-        address: "0x5a28316959551dA618F84070FfF70B390270185C",
-        event: parseAbiItem("event LendingPoolCreated(address indexed collateralToken, address indexed borrowToken, address indexed lendingPool, uint256 ltv)"),
+        address: FACTORY_ADDRESS,
+        event: LENDING_POOL_CREATED_EVENT,
         parameter: "lendingPool",
       }),
-      startBlock: 35929846,
+      startBlock: START_BLOCK,
+      includeTransactionReceipts: true,
+    },
+    // Position contracts - akan di-discover secara dinamis
+    // Untuk sementara, gunakan placeholder addresses yang akan diupdate oleh handler
+    Position: {
+      chain: "kaia", 
+      abi: PositionAbi,
+      address: [], // Akan di-populate dinamis oleh CreatePosition handler
+      startBlock: START_BLOCK,
       includeTransactionReceipts: true,
     },
   },

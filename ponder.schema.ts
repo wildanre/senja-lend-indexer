@@ -178,17 +178,6 @@ export const PositionWithdrawCollateral = onchainTable("PositionWithdrawCollater
   transactionHash: t.text().notNull(),
 }));
 
-export const PositionSwapToken = onchainTable("PositionSwapToken", (t) => ({
-  id: t.text().primaryKey(),
-  user: t.text().notNull(),
-  positionAddress: t.text().notNull(),
-  pool: t.text().notNull(), // Pool address yang terkait dengan position
-  token: t.text().notNull(),
-  amount: t.bigint().notNull(),
-  timestamp: t.bigint().notNull(),
-  blockNumber: t.bigint().notNull(),
-  transactionHash: t.text().notNull(),
-}));
 
 export const PositionSwapTokenByPosition = onchainTable("PositionSwapTokenByPosition", (t) => ({
   id: t.text().primaryKey(),
@@ -324,4 +313,68 @@ export const PositionLiquidated = onchainTable("PositionLiquidated", (t) => ({
   timestamp: t.bigint().notNull(),
   blockNumber: t.bigint().notNull(),
   transactionHash: t.text().notNull(),
+}));
+
+// ========== POSITION CONTRACT TABLES ==========
+
+// Position Registry - tracks all created positions
+export const Position = onchainTable("Position", (t) => ({
+  id: t.text().primaryKey(), // position address
+  positionAddress: t.text().notNull(),
+  user: t.text().notNull(),
+  lendingPool: t.text().notNull(),
+  createdAt: t.bigint().notNull(),
+  createdAtBlock: t.bigint().notNull(),
+  txHash: t.text().notNull(),
+}));
+
+// SwapTokenByPosition Events
+export const SwapTokenByPosition = onchainTable("SwapTokenByPosition", (t) => ({
+  id: t.text().primaryKey(),
+  user: t.text().notNull(),
+  tokenIn: t.text().notNull(),
+  tokenOut: t.text().notNull(),
+  amountIn: t.bigint().notNull(),
+  amountOut: t.bigint().notNull(),
+  positionAddress: t.text().notNull(),
+  timestamp: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  txHash: t.text().notNull(),
+  logIndex: t.integer().notNull(),
+}));
+
+// SwapToken Events (regular swaps) dari Position contract
+export const PositionSwapToken = onchainTable("PositionSwapToken", (t) => ({
+  id: t.text().primaryKey(),
+  user: t.text().notNull(),
+  token: t.text().notNull(),
+  amount: t.bigint().notNull(),
+  positionAddress: t.text().notNull(),
+  timestamp: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  txHash: t.text().notNull(),
+  logIndex: t.integer().notNull(),
+}));
+
+// WithdrawCollateral Events dari Position contract
+export const PositionWithdrawCollateralEvent = onchainTable("PositionWithdrawCollateralEvent", (t) => ({
+  id: t.text().primaryKey(),
+  user: t.text().notNull(),
+  amount: t.bigint().notNull(),
+  positionAddress: t.text().notNull(),
+  timestamp: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  txHash: t.text().notNull(),
+  logIndex: t.integer().notNull(),
+}));
+
+// Liquidate Events dari Position contract
+export const Liquidate = onchainTable("Liquidate", (t) => ({
+  id: t.text().primaryKey(),
+  user: t.text().notNull(),
+  positionAddress: t.text().notNull(),
+  timestamp: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  txHash: t.text().notNull(),
+  logIndex: t.integer().notNull(),
 }));

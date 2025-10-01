@@ -48,6 +48,7 @@ ponder.on("LendingPool:CreatePosition", async ({ event, context }) => {
   
   // Single database write - hanya essentials
   await throttledDbOperation(async () => {
+    // Insert CreatePosition event
     await context.db.insert(schema.CreatePosition).values({
       id: createEventID(BigInt(event.block.number), event.log.logIndex!),
       user: userAddress,
@@ -56,6 +57,17 @@ ponder.on("LendingPool:CreatePosition", async ({ event, context }) => {
       timestamp: timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
+    });
+
+    // Insert Position registry untuk tracking
+    await context.db.insert(schema.Position).values({
+      id: positionAddress,
+      positionAddress: positionAddress,
+      user: userAddress,
+      lendingPool: poolAddress,
+      createdAt: timestamp,
+      createdAtBlock: BigInt(event.block.number),
+      txHash: event.transaction.hash,
     });
   });
   
@@ -152,6 +164,107 @@ ponder.on("LendingPool:SupplyLiquidity", async ({ event, context }) => {
   }
   
   console.log(`✅ OPTIMIZED SupplyLiquidity: ${amount} (${shares} shares) from ${userAddress}`);
+});
+
+// OPTIMIZED: BorrowDebtCrosschain - Cross-chain borrow tracking
+ponder.on("LendingPool:BorrowDebtCrosschain", async ({ event, context }) => {
+  console.log("💳 OPTIMIZED BorrowDebtCrosschain:", {
+    user: event.args.user,
+    amount: event.args.amount,
+    shares: event.args.shares,
+    chainId: event.args.chainId
+  });
+  
+  const userAddress = event.args.user;
+  const amount = BigInt(event.args.amount);
+  const shares = BigInt(event.args.shares);
+  const chainId = BigInt(event.args.chainId);
+  const addExecutorLzReceiveOption = BigInt(event.args.addExecutorLzReceiveOption);
+  const poolAddress = event.log.address;
+  const timestamp = BigInt(event.block.timestamp);
+  
+  await throttledDbOperation(async () => {
+    await context.db.insert(schema.BorrowDebtCrosschain).values({
+      id: createEventID(BigInt(event.block.number), event.log.logIndex!),
+      user: userAddress,
+      pool: poolAddress,
+      asset: poolAddress,
+      amount: amount,
+      shares: shares,
+      chainId: chainId,
+      addExecutorLzReceiveOption: addExecutorLzReceiveOption,
+      onBehalfOf: userAddress, // Default to user since not in event args
+      timestamp: timestamp,
+      blockNumber: BigInt(event.block.number),
+      transactionHash: event.transaction.hash,
+    });
+  });
+  
+  console.log(`✅ OPTIMIZED BorrowDebtCrosschain: ${amount} borrowed by ${userAddress} on chain ${chainId}`);
+});
+
+// OPTIMIZED: WithdrawLiquidity - Liquidity withdrawal tracking
+ponder.on("LendingPool:WithdrawLiquidity", async ({ event, context }) => {
+  console.log("🏦📤 OPTIMIZED WithdrawLiquidity:", {
+    user: event.args.user,
+    amount: event.args.amount,
+    shares: event.args.shares
+  });
+  
+  const userAddress = event.args.user;
+  const amount = BigInt(event.args.amount);
+  const shares = BigInt(event.args.shares);
+  const poolAddress = event.log.address;
+  const timestamp = BigInt(event.block.timestamp);
+  
+  await throttledDbOperation(async () => {
+    await context.db.insert(schema.WithdrawLiquidity).values({
+      id: createEventID(BigInt(event.block.number), event.log.logIndex!),
+      user: userAddress,
+      pool: poolAddress,
+      asset: poolAddress,
+      amount: amount,
+      shares: shares,
+      to: userAddress, // Default to user since not in event args
+      timestamp: timestamp,
+      blockNumber: BigInt(event.block.number),
+      transactionHash: event.transaction.hash,
+    });
+  });
+  
+  console.log(`✅ OPTIMIZED WithdrawLiquidity: ${amount} (${shares} shares) withdrawn by ${userAddress}`);
+});
+
+// OPTIMIZED: RepayByPosition - Position-based repayment tracking
+ponder.on("LendingPool:RepayByPosition", async ({ event, context }) => {
+  console.log("🔄 OPTIMIZED RepayByPosition:", {
+    user: event.args.user,
+    amount: event.args.amount,
+    shares: event.args.shares
+  });
+  
+  const userAddress = event.args.user;
+  const amount = BigInt(event.args.amount);
+  const shares = BigInt(event.args.shares);
+  const poolAddress = event.log.address;
+  const timestamp = BigInt(event.block.timestamp);
+  
+  await throttledDbOperation(async () => {
+    await context.db.insert(schema.RepayWithCollateralByPosition).values({
+      id: createEventID(BigInt(event.block.number), event.log.logIndex!),
+      user: userAddress,
+      pool: poolAddress,
+      asset: poolAddress,
+      amount: amount,
+      shares: shares,
+      repayer: userAddress, // Default to user since not in event args
+      timestamp: timestamp,
+      blockNumber: BigInt(event.block.number),
+      transactionHash: event.transaction.hash,
+    });
+  });
+  
+  console.log(`✅ OPTIMIZED RepayByPosition: ${amount} (${shares} shares) repaid by ${userAddress}`);
 });
 
 // Cache cleanup untuk mencegah memory leaks

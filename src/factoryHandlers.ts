@@ -1,10 +1,9 @@
 import { ponder } from "ponder:registry";
 import * as schema from "../ponder.schema";
-import { createPublicClient, http } from 'viem';
 import { LendingPoolAbi } from '../abis/LendingPoolAbi';
 import { HELPER_CONTRACT_ADDRESS } from '../ponder.config';
 import { getRouter } from './helpers/contractHelpers';
-import { discoverRouterForPool } from './helpers/routerDiscovery';
+import { discoverRouterForPool, createConfiguredClient } from './helpers/routerDiscovery';
 import { 
   createEventID, 
   getOrCreateFactory,
@@ -13,10 +12,8 @@ import {
   createCompositeID 
 } from './helpers/entityHelpers';
 
-// Setup client untuk query router address
-const client = createPublicClient({
-  transport: http('https://base.lava.build')
-});
+// Setup client menggunakan konfigurasi dari ponder.config.ts
+const client = createConfiguredClient();
 
 // Helper function untuk mendaftarkan ke dynamic registry
 async function registerToDynamicRegistry(
@@ -59,7 +56,7 @@ ponder.on("LendingPoolFactory:LendingPoolCreated", async ({ event, context }) =>
   const blockNumber = BigInt(event.block.number);
   const transactionHash = event.transaction.hash;
   
-  // Query router address menggunakan dynamic discovery
+  // Query router address menggunakan dynamic discovery dengan configured client
   let routerAddress: string | null = null;
   
   // TEMP: Disable helper contract calls that may cause sync hanging
@@ -67,13 +64,13 @@ ponder.on("LendingPoolFactory:LendingPoolCreated", async ({ event, context }) =>
   
   /* COMMENTED OUT: Router discovery causing sync to hang
   try {
-    // Gunakan dynamic discovery yang lebih robust
-    routerAddress = await discoverRouterForPool(poolAddress);
+    // Gunakan dynamic discovery dengan configured client dari ponder.config.ts
+    routerAddress = await discoverRouterForPool(poolAddress, client);
     console.log(`🤖 Router discovered for pool ${poolAddress}: ${routerAddress}`);
   } catch (error) {
     console.error(`❌ Failed to discover router for pool ${poolAddress}:`, error);
     
-    // Fallback ke helper contract approach
+    // Fallback ke helper contract approach dengan configured client
     try {
       const contractContext = {
         client: client,
@@ -85,7 +82,7 @@ ponder.on("LendingPoolFactory:LendingPoolCreated", async ({ event, context }) =>
     } catch (helperError) {
       console.error(`❌ Helper contract fallback failed:`, helperError);
       
-      // Final fallback ke direct contract call
+      // Final fallback ke direct contract call menggunakan configured client
       try {
         routerAddress = await client.readContract({
           address: poolAddress as `0x${string}`,
