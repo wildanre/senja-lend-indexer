@@ -1,6 +1,9 @@
 import { ponder } from "ponder:registry";
 import * as schema from "../ponder.schema";
 import { createEventID } from './helpers/entityHelpers';
+import { createPublicClient, http } from "viem";
+import { fetchPositionEvents, processPositionEvent } from "./helpers/dynamicContractRegistrar";
+import { CHAIN_CONFIG } from "../ponder.config";
 
 // ========================================
 // OPTIMIZED LENDING POOL HANDLERS 
@@ -23,6 +26,20 @@ const lendingPoolCache = new Map<string, {
 // Rate limiting untuk database operations
 let lastDbWrite = 0;
 const DB_THROTTLE_MS = 150; // 150ms throttle untuk stabilitas
+
+// Setup blockchain client untuk auto-sync Position events
+const client = createPublicClient({
+  chain: {
+    id: CHAIN_CONFIG.id,
+    name: "kaia",
+    nativeCurrency: { name: "KAIA", symbol: "KAIA", decimals: 18 },
+    rpcUrls: {
+      default: { http: CHAIN_CONFIG.rpc },
+      public: { http: CHAIN_CONFIG.rpc },
+    },
+  },
+  transport: http(CHAIN_CONFIG.rpc[0]),
+});
 
 async function throttledDbOperation<T>(operation: () => Promise<T>): Promise<T> {
   const now = Date.now();
@@ -84,6 +101,26 @@ ponder.on("LendingPool:CreatePosition", async ({ event, context }) => {
   const cached = lendingPoolCache.get(poolAddress)!;
   cached.positions.add(positionAddress);
   cached.lastActivity = Date.now();
+  
+  // 🚀 AUTO-SYNC: Fetch Position events secara otomatis setelah Position dibuat
+  console.log(`🔄 AUTO-SYNC: Fetching events for newly created Position ${positionAddress}...`);
+  try {
+    const positionEvents = await fetchPositionEvents(
+      client,
+      positionAddress,
+      BigInt(event.block.number), // Start dari block saat ini
+      'latest'
+    );
+    
+    // Process dan save semua events yang ditemukan
+    for (const positionEvent of positionEvents) {
+      await processPositionEvent(context, positionEvent, positionAddress);
+    }
+    
+    console.log(`✅ AUTO-SYNC: Processed ${positionEvents.length} events for Position ${positionAddress}`);
+  } catch (error) {
+    console.error(`❌ AUTO-SYNC: Error fetching Position events:`, error);
+  }
   
   console.log(`✅ OPTIMIZED CreatePosition: ${userAddress} -> ${positionAddress} in pool ${poolAddress}`);
 });

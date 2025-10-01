@@ -5,4 +5,5 @@ import "./positionHandlers";
 // import "./routerHandlers"; 
 // import "./dynamicPositionHandlers";
 
-// Focus on LendingPool events and Position tracking
+// Focus on LendingPool events and Position tracking with auto-sync
+console.log("✅ Ponder indexer loaded with Position auto-sync support");

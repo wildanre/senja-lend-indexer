@@ -4,6 +4,7 @@ import { LendingPoolAbi } from "./abis/LendingPoolAbi";
 import { LendingPoolFactoryAbi } from "./abis/LendingPoolFactoryAbi";
 import { LendingPoolRouterAbi } from "./abis/LendingPoolRouterAbi";
 import { LendingPoolAbi as PositionAbi } from "./abis/PositionAbi";
+import { loadPositionAddressesFromChain } from "./src/helpers/positionAddressLoader";
 
 // ========== EXPORTED CONSTANTS FOR REUSABILITY ==========
 export const HELPER_CONTRACT_ADDRESS = "0x03e7669B2e85CB7C61Af39307D79390B79c3aB7B";
@@ -78,12 +79,12 @@ export default createConfig({
       startBlock: START_BLOCK,
       includeTransactionReceipts: true,
     },
-    // Position contracts - akan di-discover secara dinamis
-    // Untuk sementara, gunakan placeholder addresses yang akan diupdate oleh handler
+    // Position contracts - akan di-discover secara dinamis via CreatePosition event
+    // Note: Ponder tidak support nested factory, jadi Position akan di-track via helper
     Position: {
       chain: "kaia", 
       abi: PositionAbi,
-      address: [], // Akan di-populate dinamis oleh CreatePosition handler
+      address: [], // Akan di-populate oleh positionHelpers
       startBlock: START_BLOCK,
       includeTransactionReceipts: true,
     },
