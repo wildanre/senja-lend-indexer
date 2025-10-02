@@ -7,18 +7,18 @@ import { LendingPoolAbi as PositionAbi } from "./abis/PositionAbi";
 import { loadPositionAddressesFromChain } from "./src/helpers/positionAddressLoader";
 
 // ========== EXPORTED CONSTANTS FOR REUSABILITY ==========
-export const HELPER_CONTRACT_ADDRESS = "0x03e7669B2e85CB7C61Af39307D79390B79c3aB7B";
-export const FACTORY_ADDRESS = "0x3870bFD5820994a560E3F1D9c98c7740D9E007B8";
-export const START_BLOCK = 12805801;
+export const HELPER_CONTRACT_ADDRESS = "0x3870bFD5820994a560E3F1D9c98c7740D9E007B8";
+export const FACTORY_ADDRESS = "0x46638aD472507482B7D5ba45124E93D16bc97eCE";
+export const START_BLOCK = 12805422;
 
 // Chain configuration
 export const CHAIN_CONFIG = {
   id: 1284,
   rpc: [
-    "https://moonbeam-mainnet.g.alchemy.com/v2/_wCzLF-DIaJBtb1jRS1FD6U0cE7OA5XP",
     "https://moonbeam.unitedbloc.com",
+    "https://moonbeam-mainnet.g.alchemy.com/v2/_wCzLF-DIaJBtb1jRS1FD6U0cE7OA5XP",
   ],
-  maxRequestsPerSecond: 10,
+  // maxRequestsPerSecond: 50, // Tingkatkan untuk indexing lebih cepat
 };
 
 // Event signature untuk LendingPoolCreated
