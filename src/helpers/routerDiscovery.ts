@@ -17,7 +17,7 @@ export { CHAIN_CONFIG };
  */
 export function createConfiguredClient() {
   return createPublicClient({
-    transport: http(CHAIN_CONFIG.rpc[1]) 
+    transport: http(CHAIN_CONFIG.rpc[0]) 
   });
 }
 
