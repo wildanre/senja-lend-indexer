@@ -9,7 +9,7 @@ import { loadPositionAddressesFromChain } from "./src/helpers/positionAddressLoa
 // ========== EXPORTED CONSTANTS FOR REUSABILITY ==========
 export const HELPER_CONTRACT_ADDRESS = "0x3870bFD5820994a560E3F1D9c98c7740D9E007B8";
 export const FACTORY_ADDRESS = "0xa971CD2714fbCc9A942b09BC391a724Df9338206";
-export const START_BLOCK = 196474280;
+export const START_BLOCK = 198845191;
 
 // Chain configuration
 export const CHAIN_CONFIG = {
