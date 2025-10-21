@@ -1,11 +1,7 @@
 import { ponder } from "ponder:registry";
 import * as schema from "../ponder.schema";
 
-// ========== POSITION CONTRACT EVENT HANDLERS ==========
-// Catatan: Position contracts akan di-track otomatis via CreatePosition event di LendingPool
-// Setelah Position contract terdaftar, events berikut akan bisa diproses
 
-// Handler untuk SwapTokenByPosition event - yang diminta user  
 ponder.on("Position:SwapTokenByPosition", async ({ event, context }) => {
   const { user, tokenIn, tokenOut, amountIn, amountOut } = event.args;
 
@@ -21,7 +17,7 @@ ponder.on("Position:SwapTokenByPosition", async ({ event, context }) => {
       amountIn: amountIn,
       amountOut: amountOut,
       positionAddress: event.log.address,
-      pool: "", // Akan diupdate via CreatePosition tracking
+      pool: "",
       timestamp: event.block.timestamp,
       blockNumber: event.block.number,
       transactionHash: event.transaction.hash,
@@ -31,7 +27,6 @@ ponder.on("Position:SwapTokenByPosition", async ({ event, context }) => {
   }
 });
 
-// Handler untuk SwapToken event (regular swap)
 ponder.on("Position:SwapToken", async ({ event, context }) => {
   const { user, token, amount } = event.args;
 
@@ -54,7 +49,6 @@ ponder.on("Position:SwapToken", async ({ event, context }) => {
   }
 });
 
-// Handler untuk WithdrawCollateral event di Position contract
 ponder.on("Position:WithdrawCollateral", async ({ event, context }) => {
   const { user, amount } = event.args;
 
@@ -76,7 +70,6 @@ ponder.on("Position:WithdrawCollateral", async ({ event, context }) => {
   }
 });
 
-// Handler untuk Liquidate event
 ponder.on("Position:Liquidate", async ({ event, context }) => {
   const { user } = event.args;
 

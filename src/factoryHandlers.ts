@@ -1,9 +1,9 @@
 import { ponder } from "ponder:registry";
 import * as schema from "../ponder.schema";
 import { LendingPoolAbi } from '../abis/LendingPoolAbi';
-// import { HELPER_CONTRACT_ADDRESS } from '../ponder.config';
+import { HELPER_CONTRACT_ADDRESS } from '../ponder.config';
 import { getRouter } from './helpers/contractHelpers';
-// import { discoverRouterForPool, createConfiguredClient } from './helpers/routerDiscovery';
+import { discoverRouterForPool, createConfiguredClient } from './helpers/routerDiscovery';
 import { 
   createEventID, 
   getOrCreateFactory,
@@ -13,7 +13,7 @@ import {
 } from './helpers/entityHelpers';
 
 // Setup client menggunakan konfigurasi dari ponder.config.ts
-// const client = createConfiguredClient();
+const client = createConfiguredClient();
 
 // Helper function untuk mendaftarkan ke dynamic registry
 async function registerToDynamicRegistry(

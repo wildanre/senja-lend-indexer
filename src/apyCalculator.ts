@@ -1,19 +1,9 @@
-/**
- * APY Calculation Utilities for Lending Protocol
- * 
- * This module provides functions to calculate Annual Percentage Yield (APY),
- * interest rates, and utilization rates for lending pools.
- */
-
 // Constants for calculations
 export const SECONDS_PER_YEAR = 365 * 24 * 60 * 60; // 31,536,000 seconds
 export const BASIS_POINTS = 10000; // 1% = 100 basis points
 export const RAY = 10n ** 27n; // 1e27 for precision in calculations
 
-/**
- * Interest Rate Model Parameters
- * These should match your smart contract's interest rate model
- */
+
 export interface InterestRateModel {
   baseRate: number; // Base interest rate in basis points
   multiplier: number; // Interest rate multiplier in basis points

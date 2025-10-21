@@ -5,17 +5,7 @@ import { createPublicClient, http } from "viem";
 import { fetchPositionEvents, processPositionEvent } from "./helpers/dynamicContractRegistrar";
 import { CHAIN_CONFIG } from "../ponder.config";
 
-// ========================================
-// OPTIMIZED LENDING POOL HANDLERS 
-// ========================================
 
-// Sistem optimasi untuk LendingPool events:
-// 1. Cache untuk mengurangi database lookups
-// 2. Minimal database operations per event
-// 3. Throttling untuk mengurangi load pada database
-// 4. Focus pada events yang benar-benar critical
-
-// Cache untuk position dan pool information
 const lendingPoolCache = new Map<string, {
   positions: Set<string>,
   totalSupply: bigint,
@@ -23,11 +13,9 @@ const lendingPoolCache = new Map<string, {
   lastActivity: number
 }>();
 
-// Rate limiting untuk database operations
 let lastDbWrite = 0;
-const DB_THROTTLE_MS = 150; // 150ms throttle untuk stabilitas
+const DB_THROTTLE_MS = 150; 
 
-// Setup blockchain client untuk auto-sync Position events
 const client = createPublicClient({
   chain: {
     id: CHAIN_CONFIG.id,
@@ -144,9 +132,9 @@ ponder.on("LendingPool:SupplyCollateral", async ({ event, context }) => {
       id: createEventID(BigInt(event.block.number), event.log.logIndex!),
       user: userAddress,
       pool: poolAddress,
-      asset: poolAddress, // Pool acts as asset in this context
+      asset: poolAddress, 
       amount: amount,
-      onBehalfOf: userAddress, // Default to self
+      onBehalfOf: userAddress,
       timestamp: timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
@@ -163,7 +151,6 @@ ponder.on("LendingPool:SupplyCollateral", async ({ event, context }) => {
   console.log(`✅ OPTIMIZED SupplyCollateral: ${amount} for ${userAddress} in pool ${poolAddress}`);
 });
 
-// OPTIMIZED: SupplyLiquidity - Core liquidity tracking
 ponder.on("LendingPool:SupplyLiquidity", async ({ event, context }) => {
   console.log("🏦 OPTIMIZED SupplyLiquidity:", {
     user: event.args.user,
@@ -177,16 +164,15 @@ ponder.on("LendingPool:SupplyLiquidity", async ({ event, context }) => {
   const poolAddress = event.log.address;
   const timestamp = BigInt(event.block.timestamp);
   
-  // Single database write untuk supply - menggunakan schema yang ada
   await throttledDbOperation(async () => {
     await context.db.insert(schema.SupplyLiquidity).values({
       id: createEventID(BigInt(event.block.number), event.log.logIndex!),
       user: userAddress,
       pool: poolAddress,
-      asset: poolAddress, // Pool acts as asset in this context
+      asset: poolAddress,
       amount: amount,
       shares: shares,
-      onBehalfOf: userAddress, // Default to self
+      onBehalfOf: userAddress,
       timestamp: timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
@@ -203,7 +189,6 @@ ponder.on("LendingPool:SupplyLiquidity", async ({ event, context }) => {
   console.log(`✅ OPTIMIZED SupplyLiquidity: ${amount} (${shares} shares) from ${userAddress}`);
 });
 
-// OPTIMIZED: BorrowDebtCrosschain - Cross-chain borrow tracking
 ponder.on("LendingPool:BorrowDebtCrosschain", async ({ event, context }) => {
   console.log("💳 OPTIMIZED BorrowDebtCrosschain:", {
     user: event.args.user,

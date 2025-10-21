@@ -6,9 +6,9 @@ import { LendingPoolRouterAbi } from "./abis/LendingPoolRouterAbi";
 import { LendingPoolAbi as PositionAbi } from "./abis/PositionAbi";
 import { loadPositionAddressesFromChain } from "./src/helpers/positionAddressLoader";
 
-// export const HELPER_CONTRACT_ADDRESS = "0xad15249b77d9Bf9a02401b8122FC763fD7391329";
+export const HELPER_CONTRACT_ADDRESS = "0x8a0AB3999e64942E3A0A3227a5914319A7788253";
 export const FACTORY_ADDRESS = "0x42C5dFc5899160e9c4e2E139AfFe7472dDf4D86E";
-export const START_BLOCK = 37135186;
+export const START_BLOCK = 37140924;
 
 // base
 // export const HELPER_CONTRACT_ADDRESS = "0x3870bFD5820994a560E3F1D9c98c7740D9E007B8";
@@ -19,7 +19,7 @@ export const START_BLOCK = 37135186;
 export const CHAIN_CONFIG = {
   id: 8453,
   rpc: [
-    "https://api.zan.top/base-mainnet",
+    "https://base-mainnet.g.alchemy.com/v2/_wCzLF-DIaJBtb1jRS1FD6U0cE7OA5XP",
   ],
 };
 
